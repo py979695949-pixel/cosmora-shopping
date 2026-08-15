@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmora Shopping</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f5f5f5;color:#222;padding-bottom:75px}
+header{background:#111;color:#fff;padding:15px;position:sticky;top:0;z-index:10}
+.logo{font-size:26px;font-weight:700;margin-bottom:10px}
+.search{width:100%;padding:13px;border:0;border-radius:9px;font-size:16px}
+.container{max-width:950px;margin:auto;padding:15px}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;padding:16px;border-radius:14px;margin-bottom:16px;box-shadow:0 2px 8px #ddd}
+.banner{text-align:center;padding:28px}
+.categories button,.admin-actions button{margin:4px}
+button{border:0;border-radius:8px;padding:10px 13px;background:#111;color:#fff;cursor:pointer}
+.products{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.product{background:#fff;padding:12px;border-radius:12px;box-shadow:0 2px 8px #ddd}
+.product img{width:100%;height:150px;object-fit:cover;border-radius:9px}
+.product h3{margin:8px 0}.price{font-size:19px;font-weight:bold;margin:7px 0}
+.product button{width:100%}
+
+
+.notification{
+  padding:12px;
+  margin-top:10px;
+  border-radius:10px;
+  background:#fff3cd;
+  color:#664d03;
+  border:1px solid #ffecb5;
+}
+.review-box{margin-top:10px;padding:10px;border-top:1px solid #ddd}
+.stars button{background:transparent;color:#111;font-size:22px;padding:2px}
+.review-item{padding:8px;margin-top:8px;background:#fff;border-radius:8px;border:1px solid #ddd}
+.wishlist-btn{width:100%;margin-top:7px;background:#fff;color:#111;border:1px solid #111}
+.wishlist-card{display:flex;justify-content:space-between;align-items:center;gap:10px}
+
+input,select{width:100%;padding:12px;margin:6px 0;border:1px solid #ccc;border-radius:8px}
+.cart-item,.order-box,.admin-order{border:1px solid #ddd;padding:12px;border-radius:10px;margin-top:10px;background:#fafafa}
+.cart-item button{padding:6px 10px;margin:3px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:#f5f5f5;padding:15px;border-radius:10px;text-align:center}
+.stat h2{margin-top:5px}
+.status{margin-top:8px}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;justify-content:space-around;padding:8px;box-shadow:0 -2px 8px #ccc;z-index:20}
+.bottom-nav button{background:transparent;color:#111;font-size:13px}
+.statusbar{padding:14px;border-radius:12px;background:#d1e7dd;color:#0f5132;margin-bottom:16px;text-align:center}
+.small{font-size:13px;color:#666}
+
+.order-timeline{display:flex;align-items:center;margin-top:14px;gap:5px}
+.timeline-step{flex:1;text-align:center;font-size:12px;color:#888}
+.timeline-dot{width:30px;height:30px;border-radius:50%;background:#ddd;margin:0 auto 5px;display:flex;align-items:center;justify-content:center}
+.timeline-step.done{color:#111;font-weight:bold}
+.timeline-step.done .timeline-dot{background:#111;color:#fff}
+.timeline-line{height:4px;flex:0.5;background:#ddd;border-radius:5px}
+.timeline-line.done{background:#111}
+
+@media(min-width:700px){.products{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🛍️ Cosmora</div>
+  <input id="search" class="search" placeholder="Product खोजें..." oninput="searchProducts()">
+</header>
+
+<div class="container">
+
+  <div class="card" id="authBox">
+    <h2>👤 Customer Login</h2>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="signup()">📝 Signup</button>
+    <button onclick="login()">🔐 Login</button>
+    <button onclick="logout()" id="logoutBtn" style="display:none">🚪 Logout</button>
+    <p id="authMessage" style="margin-top:10px"></p>
+  </div>
+  <div id="firebaseStatus" class="statusbar">🔥 Firebase connect हो रहा है...</div>
+
+
+
+  <section id="productDetailsSection" class="page">
+    <div class="card">
+      <button onclick="showPage('home')">← Back to Products</button>
+      <div id="productDetails"></div>
+    </div>
+  </section>
+
+  <section id="trackSection" class="page">
+    <div class="card">
+      <h2>🔎 Order ID से Track करें</h2>
+      <input id="trackOrderId" placeholder="जैसे ORD123456789">
+      <button onclick="trackOrder()">🔍 Track Order</button>
+      <div id="trackResult" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <section id="home" class="page active">
+    <div class="card banner">
+      <h1>Cosmora में आपका स्वागत है</h1>
+      <p>Study और Desk Accessories की आसान Shopping</p>
+    </div>
+
+    <div class="card categories">
+      <h2>🛍️ Categories</h2><br>
+      <button onclick="filterCategory('All')">All</button>
+      <button onclick="filterCategory('Study')">📚 Study</button>
+      <button onclick="filterCategory('Stationery')">🖊️ Stationery</button>
+      <button onclick="filterCategory('Desk')">🗂️ Desk</button>
+      <button onclick="filterCategory('Accessories')">💡 Accessories</button>
+    </div>
+
+
+    <div class="card">
+      <h3>🔍 Product Filter</h3>
+      <select id="priceSort" onchange="applyProductFilters()">
+        <option value="default">↕️ Price Sort</option>
+        <option value="low">💰 Low to High</option>
+        <option value="high">💰 High to Low</option>
+      </select>
+    </div>
+
+    <div id="products" class="products"></div>
+  </section>
+
+  <section id="cartSection" class="page">
+    <div class="card">
+      <h2>🛒 आपका Cart</h2><br>
+      <div id="cartItems">Cart खाली है</div>
+      <h3 id="total">Total: ₹0</h3>
+    </div>
+
+    <div class="card">
+      <h3>📦 Delivery Details</h3>
+      <input id="name" placeholder="आपका नाम">
+      <input id="phone" placeholder="मोबाइल नंबर" type="tel">
+      <input id="address" placeholder="Delivery Address">
+      <h3>💳 Checkout</h3>
+      <button onclick="createOrder('Cash on Delivery')">💵 Cash on Delivery</button>
+      <button onclick="createOrder('Demo UPI')">📱 Demo UPI</button>
+    </div>
+  </section>
+
+
+  <div id="checkoutConfirm" class="card" style="display:none;position:fixed;left:10px;right:10px;top:12%;z-index:50;max-width:600px;margin:auto;box-shadow:0 5px 25px #999">
+    <h2>🧾 Confirm Your Order</h2>
+    <div id="confirmDetails" style="margin-top:12px"></div>
+    <button onclick="confirmPendingOrder()">✅ Confirm Order</button>
+    <button onclick="closeCheckoutConfirm()">✕ Cancel</button>
+  </div>
+
+  <section id="ordersSection" class="page">
+    <div class="card">
+      <h2>📦 My Orders</h2>
+      <div id="orderNotifications"></div>
+      <div id="orderHistory">अभी कोई Order नहीं है।</div>
+    </div>
+  </section>
+
+
+
+
+  <section id="reviewsSection" class="page">
+    <div class="card">
+      <h2>⭐ Product Reviews</h2>
+      <div id="reviewList">Reviews लोड हो रहे हैं...</div>
+    </div>
+  </section>
+
+  <section id="wishlistSection" class="page">
+    <div class="card">
+      <h2>❤️ My Wishlist</h2>
+      <div id="wishlistItems">Wishlist खाली है</div>
+    </div>
+  </section>
+
+  <section id="profileSection" class="page">
+    <div class="card">
+      <h2>👤 My Profile</h2>
+      <p class="small">अपनी delivery जानकारी यहाँ save करें।</p>
+      <input id="profileName" placeholder="आपका नाम">
+      <input id="profilePhone" type="tel" placeholder="मोबाइल नंबर">
+      <input id="profileAddress" placeholder="Delivery Address">
+      <button onclick="saveProfile()">💾 Profile Save करें</button>
+      <p id="profileMessage" style="margin-top:10px"></p>
+    </div>
+  </section>
+
+  <section id="adminSection" class="page">
+    <div id="adminLoginBox" class="card">
+      <h2>🔐 Admin Login</h2>
+      <input id="adminPassword" type="password" placeholder="Admin Password">
+      <button onclick="adminLogin()">Login</button>
+      <p class="small">Demo password: 1234</p>
+    </div>
+
+    <div id="adminContent" style="display:none">
+      <div class="card">
+        <h2>👨‍💼 Cosmora Admin Panel</h2>
+        <p>Firebase Order & Product Management</p>
+        <div class="stats" style="margin-top:15px">
+          <div class="stat"><p>📦 Total Orders</p><h2 id="adminOrders">0</h2></div>
+          <div class="stat"><p>💰 Total Sales</p><h2 id="adminSales">₹0</h2></div>
+          <div class="stat"><p>🛍️ Products</p><h2 id="adminProducts">0</h2></div>
+          <div class="stat"><p>📊 Status</p><h2>Live</h2></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🛍️ Product Management</h2>
+        <input id="pName" placeholder="Product name">
+        <input id="pPrice" type="number" placeholder="Price ₹">
+        <input id="pCategory" placeholder="Category (Study/Desk...)">
+        <input id="pImage" placeholder="Image URL">
+        <div class="admin-actions">
+          <button onclick="addProduct()">➕ Product Add करें</button>
+          <button onclick="loadProducts()">🔄 Products Refresh</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📋 Products</h2>
+        <div id="adminProductList">Products लोड हो रहे हैं...</div>
+      </div>
+
+      <div class="card">
+        <h2>🧾 All Orders</h2>
+        <div id="adminOrderList">Orders लोड हो रहे हैं...</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="bottom-nav">
+  <button onclick="showPage('home')">🏠<br>Home</button>
+  <button onclick="showPage('trackSection')">🔎<br>Track</button>
+  <button onclick="showPage('cartSection')">🛒<br>Cart</button>
+  <button onclick="showPage('ordersSection')">📦<br>Orders</button>
+  <button onclick="showPage('profileSection')">👤<br>Profile</button>
+  <button onclick="showPage('wishlistSection')">❤️<br>Wishlist</button>
+  <button onclick="showPage('reviewsSection')">⭐<br>Reviews</button>
+  <button onclick="showPage('adminSection')">👨‍💼<br>Admin</button>
+</div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+import {getAuth,createUserWithEmailAndPassword,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+
+const firebaseConfig={
+  apiKey:"PASTE_YOUR_FIREBASE_API_KEY_HERE",
+  authDomain:"cosmora-91d21.firebaseapp.com",
+  projectId:"cosmora-91d21",
+  storageBucket:"cosmora-91d21.firebasestorage.app",
+  messagingSenderId:"34553840571",
+  appId:"1:34553840571:web:ee083cb6fde8fa7a65fa9e"
+};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const auth=getAuth(app);
+
+const status=document.getElementById("firebaseStatus");
+status.textContent="🔥 Firebase Connected";
+
+let products=[];
+let cart=[];
+let orders=[];
+let adminLoggedIn=false;
+let currentUser=null;
+
+const fallbackProducts=[
+ {id:"demo1",name:"Study Notebook",price:99,category:"Study",image:"https://images.unsplash.com/photo-1531346878377-a5be20888e57"},
+ {id:"demo2",name:"Desk Organizer",price:149,category:"Desk",image:"https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85"},
+ {id:"demo3",name:"Pen Set",price:79,category:"Stationery",image:"https://images.unsplash.com/photo-1583485088034-697b5bc54ccd"},
+ {id:"demo4",name:"Study Lamp",price:299,category:"Accessories",image:"https://images.unsplash.com/photo-1507473885765-e6ed057f782c"}
+];
+
+function renderProducts(list=products){
+  const box=document.getElementById("products");
+  box.innerHTML="";
+  if(!list.length){box.innerHTML="<div class='card'>अभी कोई product नहीं है।</div>";return;}
+  list.forEach(p=>{
+    box.innerHTML+=`
+      <div class="product">
+        <img src="${p.image||''}" alt="${p.name}">
+        <h3>${p.name}</h3>
+        <div class="price">₹${Number(p.price||0)}</div>
+        <small>${p.category||"General"}</small><br><br>
+        <button onclick="openProductDetails('${p.id}')">👀 View Details</button>
+        <button onclick="addToCart('${p.id}')">🛒 Add to Cart</button>
+        <button class="wishlist-btn" onclick="toggleWishlist('${p.id}')">❤️ Wishlist</button>
+        <button class="wishlist-btn" onclick="openReview('${p.id}')">⭐ Review</button>
+      </div>`;
+  });
+}
+
+function renderAdminProducts(){
+  const box=document.getElementById("adminProductList");
+  document.getElementById("adminProducts").textContent=products.length;
+  if(!products.length){box.innerHTML="अभी कोई product नहीं है।";return;}
+  box.innerHTML="";
+  products.forEach(p=>{
+    box.innerHTML+=`
+      <div class="admin-order">
+        <b>${p.name}</b><br>
+        ₹${Number(p.price||0)} · ${p.category||"General"}<br>
+        <button onclick="deleteProduct('${p.id}')">🗑️ Delete</button>
+      </div>`;
+  });
+}
+
+function loadProducts(){
+  onSnapshot(collection(db,"products"),snap=>{
+    products=[];
+    snap.forEach(d=>products.push({id:d.id,...d.data()}));
+    if(!products.length) products=[...fallbackProducts];
+    renderProducts(products);
+    renderAdminProducts();
+  },err=>{
+    console.error(err);
+    products=[...fallbackProducts];
+    renderProducts(products);
+    renderAdminProducts();
+  });
+}
+
+window.addProduct=async()=>{
+  if(!adminLoggedIn){alert("पहले Admin Login करें");return;}
+  const name=document.getElementById("pName").value.trim();
+  const price=Number(document.getElementById("pPrice").value);
+  const category=document.getElementById("pCategory").value.trim()||"General";
+  const image=document.getElementById("pImage").value.trim();
+  if(!name||!price){alert("Product name और price भरें");return;}
+  try{
+    await addDoc(collection(db,"products"),{
+      name,price,category,image:image||"https://images.unsplash.com/photo-1556742049-0cfed4f6a45d",
+      createdAt:new Date().toISOString()
+    });
+    document.getElementById("pName").value="";
+    document.getElementById("pPrice").value="";
+    document.getElementById("pCategory").value="";
+    document.getElementById("pImage").value="";
+    alert("✅ Product Firebase में add हो गया");
+  }catch(e){console.error(e);alert("Product add नहीं हुआ। Firebase Rules check करें।");}
+};
+
+window.deleteProduct=async(id)=>{
+  if(!adminLoggedIn)return;
+  if(!confirm("यह product delete करना है?"))return;
+  if(String(id).startsWith("demo")){alert("Demo product code में है; Firebase वाला product delete किया जा सकता है।");return;}
+  try{await deleteDoc(doc(db,"products",id));alert("Product delete हो गया");}
+  catch(e){console.error(e);alert("Delete नहीं हुआ");}
+};
+
+window.addToCart=id=>{
+  const p=products.find(x=>String(x.id)===String(id));
+  if(!p)return;
+  const old=cart.find(x=>String(x.id)===String(id));
+  if(old)old.quantity++;else cart.push({...p,quantity:1});
+  updateCart();
+  alert(p.name+" Cart में जोड़ दिया गया!");
+};
+
+function updateCart(){
+  const box=document.getElementById("cartItems");
+  if(!cart.length){box.innerHTML="Cart खाली है";document.getElementById("total").textContent="Total: ₹0";return;}
+  let total=0;box.innerHTML="";
+  cart.forEach((x,i)=>{
+    total+=Number(x.price)*x.quantity;
+    box.innerHTML+=`
+      <div class="cart-item">
+        <b>${x.name}</b><br>₹${x.price}<br>
+        <button onclick="changeQty(${i},-1)">−</button>
+        ${x.quantity}
+        <button onclick="changeQty(${i},1)">+</button>
+        <button onclick="removeItem(${i})">Remove</button>
+      </div>`;
+  });
+  document.getElementById("total").textContent="Total: ₹"+total;
+}
+window.changeQty=(i,n)=>{cart[i].quantity+=n;if(cart[i].quantity<=0)cart.splice(i,1);updateCart()};
+window.removeItem=i=>{cart.splice(i,1);updateCart()};
+
+window.filterCategory=cat=>{
+  renderProducts(cat==="All"?products:products.filter(p=>p.category===cat));
+};
+window.applyProductFilters=()=>{
+  const q=document.getElementById("search").value.toLowerCase().trim();
+  const sort=document.getElementById("priceSort").value;
+
+  let list=products.filter(p=>
+    String(p.name).toLowerCase().includes(q) ||
+    String(p.category||"").toLowerCase().includes(q)
+  );
+
+  if(sort==="low"){
+    list.sort((a,b)=>Number(a.price||0)-Number(b.price||0));
+  }else if(sort==="high"){
+    list.sort((a,b)=>Number(b.price||0)-Number(a.price||0));
+  }
+
+  renderProducts(list);
+};
+
+window.searchProducts=()=>applyProductFilters();
+
+
+let pendingOrderMethod=null;
+
+window.closeCheckoutConfirm=()=>{
+  pendingOrderMethod=null;
+  document.getElementById("checkoutConfirm").style.display="none";
+};
+
+window.confirmPendingOrder=async()=>{
+  if(!pendingOrderMethod){
+    closeCheckoutConfirm();
+    return;
+  }
+
+  const method=pendingOrderMethod;
+  pendingOrderMethod=null;
+  document.getElementById("checkoutConfirm").style.display="none";
+  await saveConfirmedOrder(method);
+};
+
+window.saveConfirmedOrder=async method=>{
+  if(!currentUser){alert("पहले Customer Login करें।");return;}
+  if(!cart.length){alert("पहले Product Cart में जोड़ें!");return;}
+
+  const name=document.getElementById("name").value.trim();
+  const phone=document.getElementById("phone").value.trim();
+  const address=document.getElementById("address").value.trim();
+
+  if(!name||!phone||!address){
+    alert("कृपया सभी Delivery जानकारी भरें।");
+    return;
+  }
+
+  const total=cart.reduce((s,x)=>s+Number(x.price)*x.quantity,0);
+
+  const orderData={
+    userId:currentUser.uid,
+    customerEmail:currentUser.email,
+    orderId:"ORD"+Date.now(),
+    name,phone,address,
+    items:cart.map(x=>({id:x.id,name:x.name,price:x.price,quantity:x.quantity})),
+    total,method,status:"Placed",
+    date:new Date().toLocaleString("hi-IN"),
+    createdAt:new Date().toISOString()
+  };
+
+  try{
+    await addDoc(collection(db,"orders"),orderData);
+    alert("🎉 Order Successfully Created!\nOrder ID: "+orderData.orderId);
+    cart=[];updateCart();
+    document.getElementById("name").value="";
+    document.getElementById("phone").value="";
+    document.getElementById("address").value="";
+    showPage("ordersSection");
+  }catch(e){
+    console.error(e);
+    alert("Order save नहीं हुआ। Firebase Rules check करें।");
+  }
+};
+
+window.createOrder=async method=>{
+  if(!currentUser){alert("पहले Customer Login करें।");return;}
+  if(!cart.length){alert("पहले Product Cart में जोड़ें!");return;}
+
+  const name=document.getElementById("name").value.trim();
+  const phone=document.getElementById("phone").value.trim();
+  const address=document.getElementById("address").value.trim();
+
+  if(!name||!phone||!address){
+    alert("कृपया सभी Delivery जानकारी भरें।");
+    return;
+  }
+
+  const total=cart.reduce((s,x)=>s+Number(x.price)*x.quantity,0);
+
+  let itemsHtml="";
+  cart.forEach(x=>{
+    itemsHtml+=`<div style="margin-top:6px">🛍️ ${x.name} × ${x.quantity} — ₹${Number(x.price)*x.quantity}</div>`;
+  });
+
+  document.getElementById("confirmDetails").innerHTML=`
+    <div class="order-box">
+      <b>👤 ${name}</b><br>
+      📱 ${phone}<br>
+      📍 ${address}<br><br>
+      <b>🛒 Products</b>
+      ${itemsHtml}
+      <hr style="margin:10px 0">
+      <b>💰 Total: ₹${total}</b><br>
+      💳 Payment: ${method}
+    </div>`;
+
+  pendingOrderMethod=method;
+  document.getElementById("checkoutConfirm").style.display="block";
+};
+
+onSnapshot(collection(db,"orders"),snap=>{
+  orders=[];snap.forEach(d=>orders.push({firebaseId:d.id,...d.data()}));
+  orders.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  renderOrders();
+  renderNotifications();
+  if(adminLoggedIn)renderAdmin();
+},err=>console.error(err));
+
+function orderTimeline(status){
+  const s=String(status||"Placed");
+
+  if(s==="Cancelled"){
+    return `
+      <div class="order-timeline">
+        <div class="timeline-step done">
+          <div class="timeline-dot">✕</div>
+          Cancelled
+        </div>
+      </div>`;
+  }
+
+  const shipped=s==="Shipped" || s==="Delivered";
+  const delivered=s==="Delivered";
+
+  return `
+    <div class="order-timeline">
+      <div class="timeline-step done">
+        <div class="timeline-dot">✓</div>
+        Placed
+      </div>
+
+      <div class="timeline-line ${shipped ? "done" : ""}"></div>
+
+      <div class="timeline-step ${shipped ? "done" : ""}">
+        <div class="timeline-dot">🚚</div>
+        Shipped
+      </div>
+
+      <div class="timeline-line ${delivered ? "done" : ""}"></div>
+
+      <div class="timeline-step ${delivered ? "done" : ""}">
+        <div class="timeline-dot">✓</div>
+        Delivered
+      </div>
+    </div>`;
+}
+
+
+function renderNotifications(){
+  const box=document.getElementById("orderNotifications");
+  if(!box)return;
+
+  if(!currentUser){
+    box.innerHTML="";
+    return;
+  }
+
+  const myOrders=orders.filter(o=>o.userId===currentUser.uid);
+  if(!myOrders.length){
+    box.innerHTML="";
+    return;
+  }
+
+  const latest=myOrders[0];
+  const messages={
+    Placed:"📦 आपका Order successfully placed हो गया है।",
+    Shipped:"🚚 आपका Order ship हो चुका है।",
+    Delivered:"✅ आपका Order delivered हो गया है।",
+    Cancelled:"❌ आपका Order cancelled हो गया है।"
+  };
+
+  box.innerHTML=`<div class="notification">${messages[latest.status]||"📦 आपके Order का status update हुआ है।"}</div>`;
+}
+
+function renderOrders(){
+  const box=document.getElementById("orderHistory");
+  if(!currentUser){box.innerHTML="🔐 पहले Customer Login करें।";return;}
+  const myOrders=orders.filter(o=>o.userId===currentUser.uid);
+  if(!myOrders.length){box.innerHTML="अभी आपके account में कोई Order नहीं है।";return;}
+  box.innerHTML="";
+  myOrders.forEach(o=>{
+    box.innerHTML+=`
+      <div class="order-box">
+        <b>🧾 ${o.orderId}</b><br>
+        💰 ₹${o.total}<br>
+        💳 ${o.method}<br>
+        📦 ${o.status}<br>
+        ${orderTimeline(o.status)}
+        📅 ${o.date}
+      </div>`;
+  });
+}
+
+window.adminLogin=()=>{
+  if(document.getElementById("adminPassword").value==="1234"){
+    adminLoggedIn=true;
+    document.getElementById("adminLoginBox").style.display="none";
+    document.getElementById("adminContent").style.display="block";
+    renderAdmin();
+  }else alert("❌ गलत Password!");
+};
+
+function renderAdmin(){
+  document.getElementById("adminOrders").textContent=orders.length;
+  const sales=orders.filter(o=>o.status!=="Cancelled").reduce((s,o)=>s+Number(o.total||0),0);
+  document.getElementById("adminSales").textContent="₹"+sales;
+  renderAdminProducts();
+  const box=document.getElementById("adminOrderList");
+  if(!orders.length){box.innerHTML="कोई Order नहीं है।";return;}
+  box.innerHTML="";
+  orders.forEach(o=>{
+    box.innerHTML+=`
+      <div class="admin-order">
+        <b>🧾 ${o.orderId}</b><br>
+        👤 ${o.name}<br>📱 ${o.phone}<br>📍 ${o.address}<br>
+        💰 ₹${o.total}<br>💳 ${o.method}<br>📅 ${o.date}
+        <select class="status" onchange="changeStatus('${o.firebaseId}',this.value)">
+          <option ${o.status==="Placed"?"selected":""}>Placed</option>
+          <option ${o.status==="Shipped"?"selected":""}>Shipped</option>
+          <option ${o.status==="Delivered"?"selected":""}>Delivered</option>
+          <option ${o.status==="Cancelled"?"selected":""}>Cancelled</option>
+        </select>
+        <button onclick="deleteOrder('${o.firebaseId}')">🗑️ Delete Order</button>
+      </div>`;
+  });
+}
+
+window.changeStatus=async(id,status)=>{
+  try{await updateDoc(doc(db,"orders",id),{status});alert("Status Updated: "+status)}
+  catch(e){console.error(e);alert("Status update नहीं हुआ")}
+};
+window.deleteOrder=async id=>{
+  if(!confirm("क्या Order delete करना है?"))return;
+  try{await deleteDoc(doc(db,"orders",id));alert("Order delete हो गया")}
+  catch(e){console.error(e);alert("Delete नहीं हुआ")}
+};
+
+window.signup=async()=>{
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+  if(!email||password.length<6){
+    document.getElementById("authMessage").textContent="❌ Email और कम से कम 6 अक्षरों का password दें";
+    return;
+  }
+  try{
+    await createUserWithEmailAndPassword(auth,email,password);
+    document.getElementById("authMessage").textContent="✅ Signup सफल!";
+  }catch(e){
+    console.error(e);
+    document.getElementById("authMessage").textContent="❌ "+e.message;
+  }
+};
+
+window.login=async()=>{
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+  try{
+    await signInWithEmailAndPassword(auth,email,password);
+    document.getElementById("authMessage").textContent="✅ Login सफल!";
+  }catch(e){
+    console.error(e);
+    document.getElementById("authMessage").textContent="❌ Login failed";
+  }
+};
+
+window.logout=async()=>{
+  try{
+    await signOut(auth);
+    document.getElementById("authMessage").textContent="✅ Logout हो गया";
+  }catch(e){console.error(e);}
+};
+
+onAuthStateChanged(auth,user=>{
+  currentUser=user;
+  const msg=document.getElementById("authMessage");
+  const logoutBtn=document.getElementById("logoutBtn");
+  if(user){
+    msg.textContent="✅ Logged in: "+user.email;
+    logoutBtn.style.display="inline-block";
+  }else{
+    logoutBtn.style.display="none";
+  }
+  renderOrders();
+  renderNotifications();
+  loadProfile();
+  loadWishlist();
+});
+
+
+
+
+let selectedReviewProduct=null;
+let reviewStars=5;
+
+function reviewKey(){
+  return currentUser ? "cosmora_reviews_"+currentUser.uid : "cosmora_reviews_guest";
+}
+
+function getReviews(){
+  try{
+    const r=JSON.parse(localStorage.getItem("cosmora_all_reviews")||"[]");
+    return Array.isArray(r)?r:[];
+  }catch(e){return [];}
+}
+
+function saveReviews(list){
+  localStorage.setItem("cosmora_all_reviews",JSON.stringify(list));
+}
+
+window.openReview=id=>{
+  if(!currentUser){
+    alert("पहले Customer Login करें।");
+    return;
+  }
+  const p=products.find(x=>String(x.id)===String(id));
+  if(!p)return;
+
+  selectedReviewProduct=p;
+  reviewStars=5;
+
+  const text=prompt(
+    "⭐ "+p.name+" के लिए 1 से 5 star चुनें।\\n\\nअभी 5 star चुना गया है।\\nअपना छोटा review लिखें:"
+  );
+  if(text===null)return;
+
+  const starsInput=prompt("⭐ Rating कितनी दें? 1 से 5", "5");
+  const stars=Math.max(1,Math.min(5,Number(starsInput)||5));
+
+  const reviews=getReviews();
+  reviews.push({
+    productId:p.id,
+    productName:p.name,
+    userId:currentUser.uid,
+    email:currentUser.email,
+    stars,
+    text:text.trim(),
+    date:new Date().toLocaleString("hi-IN")
+  });
+  saveReviews(reviews);
+  renderReviews();
+  alert("⭐ Review save हो गया!");
+};
+
+function renderReviews(){
+  const box=document.getElementById("reviewList");
+  if(!box)return;
+
+  const reviews=getReviews();
+  if(!reviews.length){
+    box.innerHTML="अभी कोई review नहीं है।";
+    return;
+  }
+
+  box.innerHTML="";
+  reviews.slice().reverse().forEach(r=>{
+    box.innerHTML+=`
+      <div class="review-item">
+        <b>${r.productName}</b><br>
+        <span>⭐ ${r.stars}/5</span><br>
+        ${r.text||"कोई comment नहीं"}<br>
+        <span class="small">${r.date}</span>
+      </div>`;
+  });
+}
+
+let wishlist=[];
+
+function wishlistKey(){
+  return currentUser ? "cosmora_wishlist_"+currentUser.uid : "cosmora_wishlist_guest";
+}
+
+function loadWishlist(){
+  try{
+    wishlist=JSON.parse(localStorage.getItem(wishlistKey())||"[]");
+    if(!Array.isArray(wishlist))wishlist=[];
+  }catch(e){wishlist=[];}
+  renderWishlist();
+}
+
+function saveWishlist(){
+  localStorage.setItem(wishlistKey(),JSON.stringify(wishlist));
+}
+
+window.toggleWishlist=id=>{
+  if(!currentUser){
+    alert("पहले Customer Login करें।");
+    return;
+  }
+  const p=products.find(x=>String(x.id)===String(id));
+  if(!p)return;
+
+  const index=wishlist.findIndex(x=>String(x.id)===String(id));
+  if(index>=0){
+    wishlist.splice(index,1);
+    alert("❤️ Wishlist से हटा दिया गया");
+  }else{
+    wishlist.push({...p});
+    alert("❤️ Wishlist में जोड़ दिया गया");
+  }
+  saveWishlist();
+  renderWishlist();
+};
+
+function renderWishlist(){
+  const box=document.getElementById("wishlistItems");
+  if(!box)return;
+
+  if(!currentUser){
+    box.innerHTML="🔐 पहले Customer Login करें।";
+    return;
+  }
+
+  if(!wishlist.length){
+    box.innerHTML="❤️ Wishlist खाली है।";
+    return;
+  }
+
+  box.innerHTML="";
+  wishlist.forEach((p,i)=>{
+    box.innerHTML+=`
+      <div class="cart-item wishlist-card">
+        <div>
+          <b>${p.name}</b><br>
+          ₹${Number(p.price||0)}<br>
+          <span class="small">${p.category||"General"}</span>
+        </div>
+        <div>
+          <button onclick="addToCart('${p.id}')">🛒 Cart</button>
+          <button onclick="removeWishlist(${i})">Remove</button>
+        </div>
+      </div>`;
+  });
+}
+
+window.removeWishlist=i=>{
+  wishlist.splice(i,1);
+  saveWishlist();
+  renderWishlist();
+};
+
+window.saveProfile=()=>{
+  if(!currentUser){
+    alert("पहले Customer Login करें।");
+    return;
+  }
+
+  const profile={
+    name:document.getElementById("profileName").value.trim(),
+    phone:document.getElementById("profilePhone").value.trim(),
+    address:document.getElementById("profileAddress").value.trim()
+  };
+
+  if(!profile.name||!profile.phone||!profile.address){
+    document.getElementById("profileMessage").textContent="❌ सभी जानकारी भरें";
+    return;
+  }
+
+  localStorage.setItem("cosmora_profile_"+currentUser.uid,JSON.stringify(profile));
+
+  document.getElementById("name").value=profile.name;
+  document.getElementById("phone").value=profile.phone;
+  document.getElementById("address").value=profile.address;
+
+  document.getElementById("profileMessage").textContent="✅ Profile Save हो गई!";
+};
+
+function loadProfile(){
+  if(!currentUser)return;
+
+  const raw=localStorage.getItem("cosmora_profile_"+currentUser.uid);
+  if(!raw)return;
+
+  try{
+    const p=JSON.parse(raw);
+    document.getElementById("profileName").value=p.name||"";
+    document.getElementById("profilePhone").value=p.phone||"";
+    document.getElementById("profileAddress").value=p.address||"";
+
+    document.getElementById("name").value=p.name||"";
+    document.getElementById("phone").value=p.phone||"";
+    document.getElementById("address").value=p.address||"";
+  }catch(e){console.error(e);}
+}
+
+
+
+window.openProductDetails=id=>{
+  const p=products.find(x=>String(x.id)===String(id));
+  if(!p)return;
+
+  const box=document.getElementById("productDetails");
+  box.innerHTML=`
+    <img src="${p.image||""}" alt="${p.name}" style="width:100%;max-height:320px;object-fit:cover;border-radius:12px;margin-top:15px">
+    <h1 style="margin-top:15px">${p.name}</h1>
+    <div class="price">₹${Number(p.price||0)}</div>
+    <p><b>Category:</b> ${p.category||"General"}</p>
+    <p style="margin-top:10px">यह Cosmora का product है। अभी Cart में जोड़कर checkout कर सकते हैं।</p>
+    <button style="margin-top:15px;width:100%" onclick="addToCart('${p.id}')">🛒 Add to Cart</button>
+    <button class="wishlist-btn" onclick="toggleWishlist('${p.id}')">❤️ Wishlist</button>
+  `;
+
+  showPage("productDetailsSection");
+};
+
+window.trackOrder=()=>{
+  const box=document.getElementById("trackResult");
+  const id=document.getElementById("trackOrderId").value.trim();
+
+  if(!currentUser){
+    box.innerHTML="<div class='notification'>🔐 पहले Customer Login करें।</div>";
+    return;
+  }
+
+  if(!id){
+    box.innerHTML="<div class='notification'>❌ Order ID डालें।</div>";
+    return;
+  }
+
+  const order=orders.find(o=>
+    o.userId===currentUser.uid &&
+    String(o.orderId).toLowerCase()===id.toLowerCase()
+  );
+
+  if(!order){
+    box.innerHTML="<div class='notification'>❌ यह Order ID आपके account में नहीं मिली।</div>";
+    return;
+  }
+
+  box.innerHTML=`
+    <div class="order-box">
+      <b>🧾 ${order.orderId}</b><br>
+      💰 ₹${order.total}<br>
+      📅 ${order.date}<br>
+      📦 Current Status: <b>${order.status}</b>
+      ${orderTimeline(order.status)}
+    </div>`;
+};
+
+window.showPage=id=>{
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo({top:0,behavior:"smooth"});
+};
+
+renderProducts(fallbackProducts);
+updateCart();
+loadProducts();
+loadWishlist();
+</script>
+</body>
+</html>
