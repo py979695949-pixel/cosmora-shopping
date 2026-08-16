@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmora Shopping</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f4f4f4;color:#222;padding-bottom:75px}
+header{background:#111;color:#fff;padding:18px 15px;position:sticky;top:0;z-index:10}
+.logo{font-size:30px;font-weight:bold;margin-bottom:15px}
+.search{width:100%;padding:15px;border:0;border-radius:12px;font-size:17px}
+.container{max-width:700px;margin:auto;padding:15px}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;padding:18px;border-radius:16px;margin:15px 0;box-shadow:0 3px 12px #0002}
+.products{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.product{background:#fff;padding:12px;border-radius:15px;box-shadow:0 3px 10px #0002}
+.product-img{height:120px;background:#eee;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:55px;margin-bottom:10px}
+.product h3{font-size:17px;margin-bottom:7px}
+.price{font-size:19px;font-weight:bold;margin-bottom:10px}
+button{border:0;border-radius:10px;padding:12px 15px;background:#111;color:#fff;font-size:15px}
+button.green{background:#168a3d}button.red{background:#d22}button.blue{background:#1976d2}
+.full{width:100%;margin-top:10px}
+input,select{width:100%;padding:14px;border:1px solid #ccc;border-radius:10px;margin:7px 0;font-size:16px}
+textarea{font-family:Arial,sans-serif}
+.cart-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #ddd}
+.total{font-size:22px;font-weight:bold;margin:15px 0}
+.empty{text-align:center;padding:30px;color:#777}
+.bottom{position:fixed;bottom:0;left:0;right:0;height:70px;background:#fff;display:flex;justify-content:space-around;align-items:center;box-shadow:0 -3px 12px #0003;z-index:20}
+.nav{text-align:center;font-size:13px;cursor:pointer}.nav span{display:block;font-size:24px}
+.status{padding:10px;background:#e8f5e9;color:#166534;border-radius:10px;margin-top:10px}
+.success{background:#d9f5df;color:#146c2e;padding:15px;border-radius:12px;margin-top:12px}
+@media(max-width:400px){.products{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">🛍️ Cosmora</div>
+<input id="search" class="search" placeholder="Product खोजें..." oninput="searchProducts()">
+</header>
+
+<div class="container">
+<section id="home" class="page active">
+<div class="card"><h2>🛒 Cosmora Shopping</h2><p>आपके लिए आसान और सुरक्षित online shopping.</p></div>
+<h2>🔥 Products</h2><div id="products" class="products"></div>
+</section>
+
+<section id="cart" class="page">
+<div class="card"><h2>🛒 आपका Cart</h2><div id="cartItems"></div>
+<div class="total">Total: ₹<span id="cartTotal">0</span></div>
+<button class="green full" onclick="showPage('checkout')">💳 Checkout</button></div>
+</section>
+
+<section id="checkout" class="page">
+<div class="card"><h2>📦 Checkout</h2>
+<input id="name" placeholder="आपका नाम">
+<input id="phone" placeholder="Mobile Number" type="tel">
+<textarea id="address" placeholder="पूरा Address" style="width:100%;height:100px;padding:14px;border:1px solid #ccc;border-radius:10px;margin:7px 0;font-size:16px"></textarea>
+<h3>Payment Method</h3>
+<select id="payment"><option value="cod">💵 Cash on Delivery</option><option value="upi">📱 UPI</option></select>
+<div id="upiBox" style="display:none"><input id="upiId" placeholder="UPI ID जैसे example@upi"></div>
+<button class="green full" onclick="placeOrder()">✅ Order Place करें</button>
+<div id="orderMessage"></div>
+</div>
+</section>
+
+<section id="track" class="page">
+<div class="card"><h2>🔍 Order ID से Track करें</h2>
+<input id="trackId" placeholder="जैसे ORD123456">
+<button class="blue" onclick="trackOrder()">🔎 Track Order</button>
+<div id="trackResult"></div></div>
+</section>
+
+<section id="orders" class="page">
+<div class="card"><h2>📦 My Orders</h2><div id="ordersList"></div></div>
+</section>
+
+<section id="profile" class="page">
+<div class="card"><h2>👤 Customer Login</h2>
+<input id="email" type="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="signup()">📝 Signup</button>
+<button onclick="login()">🔐 Login</button>
+<button class="red" onclick="logout()">🚪 Logout</button>
+<div id="loginMessage"></div></div>
+</section>
+
+<section id="wishlist" class="page">
+<div class="card"><h2>❤️ Wishlist</h2><div id="wishlistList"></div></div>
+</section>
+</div>
+
+<div class="bottom">
+<div class="nav" onclick="showPage('home')"><span>🏠</span>Home</div>
+<div class="nav" onclick="showPage('track')"><span>🔎</span>Track</div>
+<div class="nav" onclick="showPage('cart')"><span>🛒</span>Cart</div>
+<div class="nav" onclick="showPage('orders')"><span>📦</span>Orders</div>
+<div class="nav" onclick="showPage('profile')"><span>👤</span>Profile</div>
+<div class="nav" onclick="showPage('wishlist')"><span>❤️</span>Wishlist</div>
+</div>
+
+<script>
+const productsData=[
+{id:1,name:"Study Notebook",price:99,icon:"📓"},
+{id:2,name:"Desk Organizer",price:149,icon:"🗂️"},
+{id:3,name:"Pen Set",price:79,icon:"🖊️"},
+{id:4,name:"Study Lamp",price:299,icon:"💡"},
+{id:5,name:"Water Bottle",price:199,icon:"🍼"},
+{id:6,name:"School Bag",price:499,icon:"🎒"}];
+
+let cart=JSON.parse(localStorage.getItem("cosmora_cart"))||[];
+let orders=JSON.parse(localStorage.getItem("cosmora_orders"))||[];
+let wishlist=JSON.parse(localStorage.getItem("cosmora_wishlist"))||[];
+
+function saveData(){
+localStorage.setItem("cosmora_cart",JSON.stringify(cart));
+localStorage.setItem("cosmora_orders",JSON.stringify(orders));
+localStorage.setItem("cosmora_wishlist",JSON.stringify(wishlist));
+}
+
+function renderProducts(list=productsData){
+const box=document.getElementById("products");box.innerHTML="";
+if(!list.length){box.innerHTML='<div class="empty">कोई product नहीं मिला।</div>';return}
+list.forEach(p=>{box.innerHTML+=`<div class="product">
+<div class="product-img">${p.icon}</div><h3>${p.name}</h3>
+<div class="price">₹${p.price}</div>
+<button class="green" onclick="addToCart(${p.id})">🛒 Add</button>
+<button onclick="addWishlist(${p.id})">❤️</button></div>`});
+}
+
+function addToCart(id){
+const p=productsData.find(x=>x.id===id);if(!p)return;
+const old=cart.find(x=>x.id===id);if(old)old.qty++;else cart.push({...p,qty:1});
+saveData();updateCart();alert("✅ Product cart में add हो गया!");
+}
+
+function updateCart(){
+const box=document.getElementById("cartItems"),total=document.getElementById("cartTotal");
+if(!cart.length){box.innerHTML='<div class="empty">🛒 Cart खाली है</div>';total.innerText="0";return}
+box.innerHTML="";let sum=0;
+cart.forEach(x=>{sum+=x.price*x.qty;box.innerHTML+=`<div class="cart-item">
+<div><b>${x.icon} ${x.name}</b><br>₹${x.price} × ${x.qty}</div>
+<div><button onclick="changeQty(${x.id},1)">+</button><button onclick="changeQty(${x.id},-1)">-</button>
+<button class="red" onclick="removeCart(${x.id})">🗑️</button></div></div>`});
+total.innerText=sum;
+}
+
+function changeQty(id,n){
+const x=cart.find(p=>p.id===id);if(!x)return;x.qty+=n;
+if(x.qty<=0)cart=cart.filter(p=>p.id!==id);saveData();updateCart();
+}
+function removeCart(id){cart=cart.filter(p=>p.id!==id);saveData();updateCart()}
+
+function searchProducts(){
+const q=document.getElementById("search").value.toLowerCase();
+renderProducts(productsData.filter(p=>p.name.toLowerCase().includes(q)));
+}
+
+document.getElementById("payment").addEventListener("change",function(){
+document.getElementById("upiBox").style.display=this.value==="upi"?"block":"none";
+});
+
+function placeOrder(){
+if(!cart.length){alert("❌ पहले cart में product add करें।");return}
+const name=document.getElementById("name").value.trim();
+const phone=document.getElementById("phone").value.trim();
+const address=document.getElementById("address").value.trim();
+const payment=document.getElementById("payment").value;
+if(!name||!phone||!address){alert("⚠️ Name, Mobile और Address भरें।");return}
+if(payment==="upi"&&!document.getElementById("upiId").value.trim()){alert("⚠️ UPI ID डालें।");return}
+let total=cart.reduce((s,x)=>s+x.price*x.qty,0);
+const orderId="ORD"+Date.now().toString().slice(-8);
+const order={orderId,name,phone,address,payment:payment==="cod"?"Cash on Delivery":"UPI",total,date:new Date().toLocaleString(),status:"Order Placed",items:[...cart]};
+orders.unshift(order);cart=[];saveData();updateCart();renderOrders();
+document.getElementById("orderMessage").innerHTML=`<div class="success">🎉 <b>Order Successfully Placed!</b><br><br>आपका Order ID:<br><b>${orderId}</b><br><br>Payment: ${order.payment}</div>`;
+}
+
+function renderOrders(){
+const box=document.getElementById("ordersList");
+if(!orders.length){box.innerHTML='<div class="empty">अभी कोई order नहीं है।</div>';return}
+box.innerHTML="";orders.forEach(o=>{box.innerHTML+=`<div class="card">
+<b>📦 ${o.orderId}</b><br><br>💰 ₹${o.total}<br>💳 ${o.payment}<br>📅 ${o.date}
+<div class="status">Current Status: <b>${o.status}</b></div></div>`});
+}
+
+function trackOrder(){
+const id=document.getElementById("trackId").value.trim().toUpperCase();
+const o=orders.find(x=>x.orderId===id),box=document.getElementById("trackResult");
+if(!o){box.innerHTML='<div class="card">❌ Order नहीं मिला।</div>';return}
+box.innerHTML=`<div class="card"><h3>📦 ${o.orderId}</h3><br>💰 Total: ₹${o.total}<br><br>💳 Payment: ${o.payment}<br><br>
+<div class="status">Current Status: <b>${o.status}</b></div></div>`;
+}
+
+function signup(){
+const email=document.getElementById("email").value,password=document.getElementById("password").value;
+if(!email||!password){alert("Email और Password डालें।");return}
+localStorage.setItem("cosmora_user",JSON.stringify({email,password}));
+document.getElementById("loginMessage").innerHTML='<div class="success">✅ Signup सफल!</div>';
+}
+
+function login(){
+const email=document.getElementById("email").value,password=document.getElementById("password").value;
+const user=JSON.parse(localStorage.getItem("cosmora_user"));
+if(user&&user.email===email&&user.password===password){
+localStorage.setItem("cosmora_logged","true");
+document.getElementById("loginMessage").innerHTML='<div class="success">✅ Login सफल!</div>';
+}else alert("❌ Email या Password गलत है।");
+}
+
+function logout(){
+localStorage.removeItem("cosmora_logged");
+document.getElementById("loginMessage").innerHTML='<div class="success">🚪 Logout हो गया।</div>';
+}
+
+function addWishlist(id){
+if(!wishlist.includes(id)){wishlist.push(id);saveData();renderWishlist();alert("❤️ Wishlist में add हो गया!")}
+else alert("यह product पहले से Wishlist में है।");
+}
+
+function renderWishlist(){
+const box=document.getElementById("wishlistList");
+if(!wishlist.length){box.innerHTML='<div class="empty">❤️ Wishlist खाली है।</div>';return}
+box.innerHTML="";wishlist.forEach(id=>{const p=productsData.find(x=>x.id===id);if(!p)return;
+box.innerHTML+=`<div class="cart-item"><b>${p.icon} ${p.name}</b><button class="green" onclick="addToCart(${p.id})">🛒 Add</button></div>`});
+}
+
+function showPage(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+window.scrollTo({top:0,behavior:"smooth"});
+if(id==="cart")updateCart();if(id==="orders")renderOrders();if(id==="wishlist")renderWishlist();
+}
+
+renderProducts();updateCart();renderOrders();renderWishlist();
+</script>
+</body>
+</html>
