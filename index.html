@@ -102,6 +102,9 @@ textarea{font-family:Arial,sans-serif}
 </div>
 
 <script>
+  const SUPABASE_URL = "https://rdnbprtelquwitttffui.supabase.co";
+const SUPABASE_KEY = "यहाँ अपनी Publishable key paste करो";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const productsData=[
 {id:1,name:"Study Notebook",price:99,icon:"📓"},
 {id:2,name:"Desk Organizer",price:149,icon:"🗂️"},
